@@ -1,0 +1,3 @@
+[workspace]
+members = ["gcd_lib", "gcd_cli", "gcd_web"]
+resolver = "3"
