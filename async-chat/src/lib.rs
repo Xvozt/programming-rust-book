@@ -15,6 +15,7 @@ pub enum FromClient {
     },
 }
 
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub enum FromServer {
     Message {
         group_name: Arc<String>,
