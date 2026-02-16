@@ -8,4 +8,12 @@ impl GroupTable {
     pub fn new() -> GroupTable {
         Self(Mutex::new(HashMap::new()))
     }
+
+    pub fn get_or_create(&self, name: Arc<String>) -> Group {
+        todo!()
+    }
+
+    pub fn get(&self, name: &String) -> Option<Group> {
+        todo!()
+    }
 }
