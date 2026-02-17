@@ -4,7 +4,12 @@ use async_chat::{
     FromClient, FromServer,
     utils::{self, ChatResult},
 };
-use async_std::{io::BufReader, net::TcpStream, stream::StreamExt, sync::Mutex};
+use async_std::{
+    io::{BufReader, WriteExt},
+    net::TcpStream,
+    stream::StreamExt,
+    sync::Mutex,
+};
 
 use crate::grouptable::GroupTable;
 
@@ -50,6 +55,9 @@ impl Outbound {
     }
 
     pub async fn send(&self, packet: FromServer) -> ChatResult<()> {
-        todo!()
+        let mut guard = self.0.lock().await;
+        utils::send_as_json(&mut *guard, &packet).await?;
+        guard.flush().await?;
+        Ok(())
     }
 }
