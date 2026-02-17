@@ -44,7 +44,7 @@ async fn handle_replies(from_server: net::TcpStream) -> ChatResult<()> {
                 group_name,
                 message,
             } => {
-                println!("Message posted to {}:{}", group_name, message)
+                println!("Message posted to group '{}': {}", group_name, message)
             }
             FromServer::Error(message) => {
                 println!("Error from server: {}", message)

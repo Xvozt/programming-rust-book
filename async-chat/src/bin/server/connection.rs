@@ -37,7 +37,6 @@ pub async fn serve(socket: TcpStream, groups: Arc<GroupTable>) -> ChatResult<()>
                 None => Err(format!("Group '{}' doesn't exist", group_name)),
             },
         };
-
         if let Err(message) = result {
             let report = FromServer::Error(message);
             outboud.send(report).await?;
