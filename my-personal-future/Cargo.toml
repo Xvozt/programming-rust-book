@@ -1,0 +1,9 @@
+[package]
+name = "my-personal-future"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+crossbeam = "0.8.4"
+futures-lite = "2.6.1"
+waker-fn = "1.2.0"
