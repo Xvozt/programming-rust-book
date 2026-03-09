@@ -2,13 +2,18 @@ use std::{
     error,
     ffi::{CStr, CString},
     fmt,
+    marker::PhantomData,
+    mem,
     os::raw::c_int,
     path::Path,
     ptr, result,
 };
 
+use libc::c_char;
+
 mod raw;
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub struct Error {
     code: i32,
@@ -60,6 +65,34 @@ impl Repository {
         }
         Ok(Repository { raw: repo })
     }
+
+    pub fn reference_name_to_id(&self, name: &str) -> Result<Oid> {
+        let name = CString::new(name)?;
+        unsafe {
+            let oid = {
+                let mut oid = mem::MaybeUninit::uninit();
+                check(raw::git_reference_name_to_id(
+                    oid.as_mut_ptr(),
+                    self.raw,
+                    name.as_ptr() as *const c_char,
+                ))?;
+
+                oid.assume_init()
+            };
+            Ok(Oid { raw: oid })
+        }
+    }
+
+    pub fn find_commit<'repo, 'id>(&'repo self, oid: &'id Oid) -> Result<Commit<'repo>> {
+        let mut commit = ptr::null_mut();
+        unsafe {
+            check(raw::git_commit_lookup(&mut commit, self.raw, &oid.raw))?;
+        }
+        Ok(Commit {
+            raw: commit,
+            _marker: PhantomData,
+        })
+    }
 }
 
 impl Drop for Repository {
@@ -69,6 +102,65 @@ impl Drop for Repository {
         }
     }
 }
+
+pub struct Oid {
+    pub raw: raw::git_oid,
+}
+
+pub struct Commit<'repo> {
+    raw: *mut raw::git_commit,
+    _marker: PhantomData<&'repo Repository>,
+}
+
+impl<'repo> Commit<'repo> {
+    pub fn author<'commit>(&self) -> Signature<'commit> {
+        unsafe {
+            Signature {
+                raw: raw::git_commit_author(self.raw),
+                _marker: PhantomData,
+            }
+        }
+    }
+
+    pub fn message(&self) -> Option<&str> {
+        unsafe {
+            let message = raw::git_commit_message(self.raw);
+            char_ptr_to_str(self, message)
+        }
+    }
+}
+
+impl<'repo> Drop for Commit<'repo> {
+    fn drop(&mut self) {
+        unsafe {
+            raw::git_commit_free(self.raw);
+        }
+    }
+}
+
+pub struct Signature<'text> {
+    raw: *const raw::git_signature,
+    _marker: PhantomData<&'text str>,
+}
+
+impl<'text> Signature<'text> {
+    pub fn name(&self) -> Option<&str> {
+        unsafe { char_ptr_to_str(self, (*self.raw).name) }
+    }
+
+    pub fn email(&self) -> Option<&str> {
+        unsafe { char_ptr_to_str(self, (*self.raw).email) }
+    }
+}
+
+unsafe fn char_ptr_to_str<T>(_owner: &T, ptr: *const c_char) -> Option<&str> {
+    if ptr.is_null() {
+        return None;
+    } else {
+        unsafe { CStr::from_ptr(ptr).to_str().ok() }
+    }
+}
+
 #[cfg(unix)]
 fn path_to_cstring(path: &Path) -> Result<CString> {
     use std::os::unix::ffi::OsStrExt;
