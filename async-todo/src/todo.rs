@@ -1,6 +1,8 @@
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
-use sqlx::{Error, SqlitePool, query, query_as};
+use sqlx::{SqlitePool, query, query_as};
+
+use crate::error::Error;
 
 #[derive(Serialize, Clone, sqlx::FromRow)]
 pub struct Todo {
@@ -21,6 +23,7 @@ pub struct UpdateTodo {
     completed: bool,
 }
 
+#[allow(dead_code)]
 impl UpdateTodo {
     pub fn body(&self) -> &str {
         self.body.as_str()
@@ -31,6 +34,7 @@ impl UpdateTodo {
     }
 }
 
+#[allow(dead_code)]
 impl CreateTodo {
     pub fn body(&self) -> &str {
         self.body.as_ref()
@@ -42,6 +46,7 @@ impl Todo {
         query_as("select id,body,completed,created_at,updated_at from todos")
             .fetch_all(&dbpool)
             .await
+            .map_err(Into::into)
     }
 
     pub async fn read(dbpool: SqlitePool, id: i64) -> Result<Todo, Error> {
@@ -49,6 +54,7 @@ impl Todo {
             .bind(id)
             .fetch_one(&dbpool)
             .await
+            .map_err(Into::into)
     }
 
     pub async fn create(dbpool: SqlitePool, new_todo: CreateTodo) -> Result<Todo, Error> {
@@ -56,6 +62,7 @@ impl Todo {
             .bind(new_todo.body)
             .fetch_one(&dbpool)
             .await
+            .map_err(Into::into)
     }
 
     pub async fn update(
@@ -69,6 +76,7 @@ impl Todo {
             .bind(id)
             .fetch_one(&dbpool)
             .await
+            .map_err(Into::into)
     }
 
     pub async fn delete(dbpool: SqlitePool, id: i64) -> Result<(), Error> {
@@ -76,7 +84,6 @@ impl Todo {
             .bind(id)
             .execute(&dbpool)
             .await?;
-
         Ok(())
     }
 }

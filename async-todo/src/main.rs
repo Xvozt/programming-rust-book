@@ -1,8 +1,25 @@
+use crate::router::create_router;
+
+mod api;
+mod error;
+mod router;
 mod todo;
 
 #[tokio::main]
 async fn main() {
     init_tracing();
+    let dbpool = init_dbpool().await.expect("couldn't initialize db pool");
+
+    let router = create_router(dbpool).await;
+    let bind_addr = std::env::var("BIND_ADDR").unwrap_or_else(|_| "127.0.0.1:3000".to_string());
+
+    let listener = tokio::net::TcpListener::bind(bind_addr)
+        .await
+        .expect("Failed to bind port");
+
+    axum::serve(listener, router.into_make_service())
+        .await
+        .expect("unable to start service");
 }
 
 fn init_tracing() {
@@ -32,10 +49,14 @@ async fn init_dbpool() -> Result<sqlx::Pool<sqlx::Sqlite>, sqlx::Error> {
         .await
         .expect("cannot connect to database");
 
+    tracing::info!("running database migrations");
+
     sqlx::migrate!("./migrations")
         .run(&dbpool)
         .await
         .expect("database migration failed");
+
+    tracing::info!("database migrations complete");
 
     Ok(dbpool)
 }
