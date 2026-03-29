@@ -79,7 +79,7 @@ async fn main() -> Result<()> {
                 uri_builder
                     .path_and_query(format!("/v1/todos/{}", id))
                     .build()?,
-                Method::PATCH,
+                Method::PUT,
                 Some(json!({"body":body, "completed":completed}).to_string()),
             )
             .await
@@ -123,9 +123,6 @@ async fn request(uri: hyper::Uri, method: Method, body: Option<String>) -> Resul
 
     let authority = uri.authority().unwrap().clone();
 
-    // hyper 1.x variant:
-    // `hyper::body::Body` is now a trait, not a concrete request body type.
-    // Use concrete bodies from `http-body-util` and box them to one type.
     let req = Request::builder()
         .uri(uri)
         .method(method)
@@ -137,10 +134,6 @@ async fn request(uri: hyper::Uri, method: Method, body: Option<String>) -> Resul
         })?;
 
     let mut res = sender.send_request(req).await?;
-
-    // For debug
-    println!("Response: {}", res.status());
-    println!("Headers: {:#?}\n", res.headers());
 
     let mut buf = Vec::new();
     while let Some(next) = res.frame().await {
