@@ -9,5 +9,15 @@ pub struct NewString(String);
 fn main() {
     let mut s = "Hello";
     *MutStr { s: &mut s }.s = "world";
-    println!("{}", s)
+    println!("{}", s);
+
+    macro_rules! let_foo {
+        ($x:expr) => {
+            let foo = $x;
+        };
+    }
+
+    let foo = 1;
+    let_foo!(2);
+    assert_eq!(foo, 1)
 }
